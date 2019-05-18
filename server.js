@@ -3,8 +3,8 @@ const helmet = require("helmet");
 
 const server = express();
 
-const Projects = require("./data/helpers/projectModel.js");
-const Actions = require("./data/helpers/actionModel.js");
+const projectDB = require("./data/helpers/projectModel.js");
+const actionDB = require("./data/helpers/actionModel.js");
 
 server.use(express.json());
 server.use(helmet());
@@ -15,9 +15,10 @@ server.get("/", (req, res) => {
   `);
 });
 
-server.get("/projects", async (req, res) => {
+//get projects and actions
+server.get("/api/projects", async (req, res) => {
   try {
-    const projects = await Projects.find(req.query);
+    const projects = await projectDB.get(req.query);
     res.status(200).json(projects);
   } catch (error) {
     console.log(error);
@@ -27,17 +28,10 @@ server.get("/projects", async (req, res) => {
   }
 });
 
-server.get("/projects/:project_id/:id", async (req, res) => {
+server.get("/api/actions", async (req, res) => {
   try {
-    const actions = await Actions.find(req.query);
-    const project = await Projects.getProjectActions(req.params.id);
-    if (project) {
-      res.status(200).json(actions);
-    } else {
-      res.status(404).json({
-        error: "The project with the specified ID does not exist"
-      });
-    }
+    const actions = await actionsDb.get(req.query);
+    res.status(200).json(actions);
   } catch (error) {
     console.log(error);
     res.status(500).json({
@@ -46,17 +40,75 @@ server.get("/projects/:project_id/:id", async (req, res) => {
   }
 });
 
-server.post("/projects", async (req, res) => {
+//get projects and actions by id:
+server.get("/api/projects/:id", async (req, res) => {
+  let { id } = req.params;
   try {
-    const { name, description, completed } = await Projects.insert(req.body);
+    const project = await projectDB.get(id);
+    if (id) {
+      res.status(200).json(project);
+    } else {
+      res.status(400).json({
+        message: "the project with that ID does not exist"
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Unable to retreive project"
+    });
+  }
+});
+
+server.get("/api/actions/:id", async (req, res) => {
+  let { id } = req.params;
+  try {
+    const action = await actionDB.get(id);
+    if (id) {
+      res.status(200).json(action);
+    } else {
+      res.status(400).json({
+        message: "the action with that ID does not exist"
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "unable to retreive action"
+    });
+  }
+});
+
+//get all actions for project
+server.get("/api/projects/:id/actions", (req, res) => {
+  let { id } = req.params;
+  projectDB
+    .getProjectActions(id)
+    .then(projectActions => {
+      if (!projectActions.length) {
+        res.status(404).json({
+          error: "the actions for this project do not exist"
+        });
+      } else {
+        res.status(200).json(projectActions);
+      }
+    })
+    .catch(error => {
+      res.status(500).json({
+        message: "Unable to retreive information"
+      });
+    });
+});
+
+//add projects and actions
+server.post("/api/projects", async (req, res) => {
+  let { name, description } = req.body;
+  try {
+    const addedProject = projectDB.insert({ name, description });
     if (!name || !description) {
       res.status(400).json({
         error: "Please provide name and description for the project."
       });
     } else {
-      Projects.insert({ name, description, completed }).then(addedProject => {
-        res.status(201).json(addedProject);
-      });
+      res.status(200).json(addedProject);
     }
   } catch (error) {
     console.log(error);
@@ -66,21 +118,16 @@ server.post("/projects", async (req, res) => {
   }
 });
 
-server.post("/projects/:project_id/:id", async (req, res) => {
+server.post("/api/actions", async (req, res) => {
+  let { project_id, notes, description } = req.body;
   try {
-    const { project_id, description, notes, completed } = await Actions.insert(
-      req.body
-    );
     if (!project_id || !description || !notes) {
       res
         .status(400)
         .json({ message: "Please provide project ID, description, and notes" });
     } else {
-      Actions.insert({ project_id, description, notes, completed }).then(
-        addedAction => {
-          res.status(201).json(addedAction);
-        }
-      );
+      const addedAction = actionDB.insert(req.body);
+      res.status(200).json(addedAction);
     }
   } catch (error) {
     console.log(error);
@@ -90,10 +137,13 @@ server.post("/projects/:project_id/:id", async (req, res) => {
   }
 });
 
-server.delete("/projects/:id", async (req, res) => {
+//delete projects and actions
+server.delete("/api/projects/:id", async (req, res) => {
+  let { id } = req.params;
   try {
-    const deleted = await Projects.remove(req.params.id);
+    const deleted = await projectDB.get(id);
     if (deleted > 0) {
+      await projectDB.remove(id);
       res.status(200).json({
         message: "the project has been deleted"
       });
@@ -110,10 +160,12 @@ server.delete("/projects/:id", async (req, res) => {
   }
 });
 
-server.delete("/projects/:project_id/:id", async (req, res) => {
+server.delete("/api/actions/:id", async (req, res) => {
+  let { id } = req.params;
   try {
-    const deleted = await Actions.remove(req.params.id);
+    const deleted = await actionsDB.get(id);
     if (deleted > 0) {
+      await actionDB.remove(id);
       res.status(200).json({
         message: "the action has been deleted"
       });
@@ -130,23 +182,20 @@ server.delete("/projects/:project_id/:id", async (req, res) => {
   }
 });
 
-server.put("/projects/:id", async (req, res) => {
+//update projects and actions
+server.put("/api/projects/:id", async (req, res) => {
+  let { id } = req.params;
+  let { name, description, completed } = req.body;
   try {
-    const { name, description, completed } = project;
-    const project = await Projects.update(req.params.id, req.body);
+    const project = await projectDB.get(id);
     if (!name || !description) {
       res.status(400).json({
         message: "Please provide name and description for the project"
       });
     } else {
-      Projects.update(id, project).then(updatedProject => {
-        if (updatedProject) {
-          res.status(200).json(updatedProject);
-        } else {
-          res.status(404).json({
-            message: "The project with the specified ID does not exist"
-          });
-        }
+      await projectDB.update(id, { name, description, completed });
+      res.status(200).json({
+        message: "the project has been updated"
       });
     }
   } catch (error) {
@@ -157,23 +206,19 @@ server.put("/projects/:id", async (req, res) => {
   }
 });
 
-server.put("/projects/:project_id/:id", async (req, res) => {
+server.put("/api/actions/:id", async (req, res) => {
+  let { id } = req.params;
+  let { project_id, notes, description } = req.body;
   try {
-    const { name, description, notes, completed } = action;
-    const action = await Actions.update(req.params.id, req.body);
+    const action = await actionDB.get(id);
     if (!name || !description || !notes) {
       res.status(400).json({
         message: "Please provide name, description, and notes for the action."
       });
     } else {
-      Actions.update(id, action).then(updatedAction => {
-        if (updatedAction) {
-          res.status(200).json(updatedAction);
-        } else {
-          res.status(404).json({
-            message: "The action with the specified ID does not exist"
-          });
-        }
+      await actionDB.update(id, req.body);
+      res.status(200).json({
+        message: "the action has been updated"
       });
     }
   } catch (error) {
