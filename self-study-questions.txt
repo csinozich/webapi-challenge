@@ -1,0 +1,19 @@
+- [ ] Mention two parts of Express that you learned about this week.
+
+Routing and Middleware
+
+- [ ] Describe Middleware?
+
+Middleware is a set of functions that allows you to perform actions as requests are made.
+
+- [ ] Describe a Resource?
+
+A data set that you alter with CRUD operations.
+
+- [ ] What can the API return to help clients know if a request was successful?
+
+A 200 message?
+
+- [ ] How can we partition our application into sub-applications?
+
+Using routing and sub-routing.
