@@ -18,7 +18,7 @@ server.get("/", (req, res) => {
 //get projects and actions
 server.get("/api/projects", async (req, res) => {
   try {
-    const projects = await projectDB.get(req.query);
+    const projects = await projectDB.get();
     res.status(200).json(projects);
   } catch (error) {
     console.log(error);
@@ -30,7 +30,7 @@ server.get("/api/projects", async (req, res) => {
 
 server.get("/api/actions", async (req, res) => {
   try {
-    const actions = await actionsDB.get(req.query);
+    const actions = await actionDB.get();
     res.status(200).json(actions);
   } catch (error) {
     console.log(error);
@@ -163,7 +163,7 @@ server.delete("/api/projects/:id", async (req, res) => {
 server.delete("/api/actions/:id", async (req, res) => {
   let { id } = req.params;
   try {
-    const deleted = await actionsDB.get(id);
+    const deleted = await actionDB.get(id);
     if (deleted > 0) {
       await actionDB.remove(id);
       res.status(200).json({
