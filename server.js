@@ -30,7 +30,7 @@ server.get("/api/projects", async (req, res) => {
 
 server.get("/api/actions", async (req, res) => {
   try {
-    const actions = await actionsDb.get(req.query);
+    const actions = await actionsDB.get(req.query);
     res.status(200).json(actions);
   } catch (error) {
     console.log(error);
