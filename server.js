@@ -142,7 +142,7 @@ server.delete("/api/projects/:id", async (req, res) => {
   let { id } = req.params;
   try {
     const deleted = await projectDB.get(id);
-    if (deleted > 0) {
+    if (deleted) {
       await projectDB.remove(id);
       res.status(200).json({
         message: "the project has been deleted"
@@ -164,7 +164,7 @@ server.delete("/api/actions/:id", async (req, res) => {
   let { id } = req.params;
   try {
     const deleted = await actionDB.get(id);
-    if (deleted > 0) {
+    if (deleted) {
       await actionDB.remove(id);
       res.status(200).json({
         message: "the action has been deleted"
